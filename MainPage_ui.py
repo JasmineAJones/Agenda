@@ -7,6 +7,9 @@ import sqlite3
 import FormPage_ui
 
 
+con = sqlite3.connect('DailyTasks.db')
+cur = con.cursor()
+
 class Ui_Agenda(object):
     def greeting(self):
         time = str(datetime.now().time())[0:2]
@@ -15,9 +18,9 @@ class Ui_Agenda(object):
             self.GreetLabel.setText("Good Morning Early Bird!")
         elif int(time) >= 7 and int(time) < 12:
                 self.GreetLabel.setText("Morning Jasmine!")
-        elif int(time) >= 12 and int(time) < 15:
+        elif int(time) >= 12 and int(time) < 16:
                 self.GreetLabel.setText("Good Afternoon!")
-        elif int(time) >= 15:
+        elif int(time) >= 16:
                 self.GreetLabel.setText("You're here late.... go home?")
 
     def AddTask(self):
@@ -25,7 +28,24 @@ class Ui_Agenda(object):
         self.ui =FormPage_ui.Ui_Form()
         self.ui.setupUi(self.Add)
         self.Add.show()
-         
+
+    def LoadNotes(self):
+        f = open('Notes.txt', 'r')
+        narray = f.readlines()
+        notes = ''
+        print(narray)
+        for i in range(len(narray)):
+                notes = notes+""+narray[i]
+
+        return(notes)
+    
+    def SaveNotes(self):
+         f = open('Notes.txt', 'w')
+
+         Notes = self.Notes.toPlainText()
+         print(Notes)
+         f.write(Notes)
+         f.close
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -76,6 +96,8 @@ class Ui_Agenda(object):
 "        }")
         self.Notes.setObjectName("Notes")
         self.gridLayout.addWidget(self.Notes, 4, 5, 1, 1)
+        self.Notes.setText(str(self.LoadNotes()))
+        self.Notes.textChanged.connect(lambda: self.SaveNotes())
 
 
         self.EditBtn = QtWidgets.QPushButton(self.centralwidget)
@@ -187,16 +209,18 @@ class Ui_Agenda(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Agenda"))
-        self.Notes.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Gadugi\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'MS Shell Dlg 2\'; font-size:7.8pt;\">Notes:</span></p>\n"
-"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:\'MS Shell Dlg 2\'; font-size:7.8pt;\"><br /></p></body></html>"))
         self.EditBtn.setText(_translate("MainWindow", "Edit"))
         self.AddBtn.setText(_translate("MainWindow", "Add New"))
         #self.GreetLabel.setText(_translate("MainWindow", "Greeting"))
         self.CopyBtn.setText(_translate("MainWindow", "Copy"))
+
+        #self.Notes.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'Gadugi\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'MS Shell Dlg 2\'; font-size:7.8pt;\">Notes:</span></p>\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:\'MS Shell Dlg 2\'; font-size:7.8pt;\"><br /></p></body></html>"#))
+        
 
 
 
