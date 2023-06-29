@@ -11,8 +11,51 @@ import MainPage_ui
 con = sqlite3.connect('DailyTasks.db')
 cur = con.cursor()
 
+
+
 class Ui_Form(object):
-    
+    def newTask(self):
+        date = self.getDate()
+
+        if self.TopicDD.currentText() == "Add a task to an already made topic" and self.TopicEF.text() != "":
+            if self.TaskEF.text() !="":
+                topic = self.TopicEF.text()
+                task = self.TaskEF.text()
+                details = self.textEdit.toPlainText()
+
+                res = cur.execute("INSERT INTO 'main'.'Topic' ('Label') VALUES ('"+str(topic)+"'")
+                con.commit()
+                id = cur.lastrowid
+                res = cur.execute("INSERT INTO 'main'.'Tasks' ('"+id+"', '"+str(task)+"', '"+str(details)+"') VALUES (1, 'Bug Fixes', 'Need to do extensive tests to find any bugs');")
+                con.commit()
+            return
+        elif self.TopicEF.text() == "" and self.TopicDD.currentText() != "Add a task to an already made topic":
+            return
+            
+           # res = cur.execute("INSERT INTO 'main'.'Tasks' ('TopicID', 'Task', 'Details') VALUES (1, 'Bug Fixes', 'Need to do extensive tests to find any bugs');")
+
+#con.commit()
+
+    def getDropDown(self):
+        date = self.getDate()
+
+        res = cur.execute("SELECT * FROM Topic")
+        AllTopics = res.fetchall()
+
+        for row, topic in enumerate(AllTopics):
+            topicDate = datetime.strptime(topic[2][:10],"%Y-%m-%d")
+            if topicDate == date:
+                self.TopicDD.addItem("")
+                self.TopicDD.setItemText(row, str(topic[1]))
+
+
+
+
+    def getDate(self):
+        date = datetime.now()
+        date = str(date)[:10]
+        date = datetime.strptime(date,"%Y-%m-%d")
+        return date
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -58,13 +101,16 @@ class Ui_Form(object):
         self.TopicDD = QtWidgets.QComboBox(self.centralwidget)
         font = QtGui.QFont()
         font.setFamily("Gadugi")
+        font.setBold(True)
         font.setPointSize(10)
         self.TopicDD.setFont(font)
         self.TopicDD.setStyleSheet("background-color: white;\n"
 "border-radius: 5;\n"
 "border: 2px solid rgb(199, 199, 199);")
+        self.TopicDD.setPlaceholderText("Add a task to an already made topic")
         self.TopicDD.setObjectName("TopicDD")
         self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.TopicDD)
+        self.getDropDown()
 
 
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)

@@ -33,7 +33,6 @@ class Ui_Agenda(object):
         f = open('Notes.txt', 'r')
         narray = f.readlines()
         notes = ''
-        print(narray)
         for i in range(len(narray)):
                 notes = notes+""+narray[i]
 
@@ -47,7 +46,72 @@ class Ui_Agenda(object):
          f.write(Notes)
          f.close
 
+    def getDate(self):
+        date = datetime.now()
+        date = str(date)[:10]
+        date = datetime.strptime(date,"%Y-%m-%d")
+        return date
+
+    def LoadTasks(self, date):
+        res = cur.execute("SELECT * FROM Topic")
+        AllTopics = res.fetchall()
+
+        date = self.getDate()
+
+        rowcount = 0
+        for row, topic in enumerate(AllTopics):
+            topicDate = datetime.strptime(topic[2][:10],"%Y-%m-%d")
+            if topicDate == date:
+                id=topic[0]
+
+                #Printing topic
+                font = QtGui.QFont()
+                font.setFamily("Gadugi")
+                font.setPointSize(10)
+                font.setWeight(75)
+                Item = QTableWidgetItem(str(topic[1])+":")
+                Item.setFont(font)
+                Item.setTextAlignment(Qt.AlignCenter)
+                Item.setFlags(QtCore.Qt.ItemIsEnabled)
+                self.TaskView.setItem(row,0,Item)
+
+                rowcount = rowcount + 1
+
+                res = cur.execute("SELECT * FROM Tasks WHERE TopicID = "+str(id))
+                AllTasks = res.fetchall()
+
+                for w, tasks in enumerate(AllTasks):
+
+                        #Printing Task
+                        font = QtGui.QFont()
+                        font.setFamily("Gadugi")
+                        font.setPointSize(10)
+                        font.setWeight(75)
+                        Item = QTableWidgetItem(str(tasks[2]))
+                        Item.setFont(font)
+                        Item.setTextAlignment(Qt.AlignCenter)
+                        Item.setFlags(QtCore.Qt.ItemIsEnabled)
+                        self.TaskView.setItem(rowcount,1,Item)
+
+                        #Printing Detail
+                        if str(tasks[3]) != 'None':
+                                font = QtGui.QFont()
+                                font.setFamily("Gadugi")
+                                font.setPointSize(10)
+                                font.setWeight(75)
+                                Item = QTableWidgetItem(str(tasks[3]))
+                                Item.setFont(font)
+                                Item.setTextAlignment(Qt.AlignCenter)
+                                Item.setFlags(QtCore.Qt.ItemIsEnabled)
+                                self.TaskView.setItem(rowcount,2,Item)
+
+                        rowcount = rowcount + 1
+                row = rowcount + 2
+
+        
+
     def setupUi(self, MainWindow):
+        monitor = QDesktopWidget().screenGeometry(0)
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1022, 777)
         MainWindow.setStyleSheet("background-color:rgb(210, 225, 255);")
@@ -182,7 +246,7 @@ class Ui_Agenda(object):
         self.gridLayout.addWidget(self.CopyBtn, 2, 1, 1, 1)
 
 
-        self.TaskView = QtWidgets.QTableView(self.centralwidget)
+        self.TaskView = QtWidgets.QTableWidget(self.centralwidget)
         font = QtGui.QFont()
         font.setFamily("Gadugi")
         font.setPointSize(10)
@@ -195,7 +259,19 @@ class Ui_Agenda(object):
         self.TaskView.setShowGrid(False)
         self.TaskView.setGridStyle(QtCore.Qt.NoPen)
         self.TaskView.setObjectName("TaskView")
+        self.TaskView.setColumnCount(3)
+        self.TaskView.setRowCount(100)
+        item = QtWidgets.QTableWidgetItem()
+        self.TaskView.setHorizontalHeaderItem(0, item)
+        self.TaskView.setColumnWidth(0, round((monitor.width())/10))
+        item = QtWidgets.QTableWidgetItem()
+        self.TaskView.setHorizontalHeaderItem(1, item)
+        self.TaskView.setColumnWidth(1, round((monitor.width())/6))
+        item = QtWidgets.QTableWidgetItem()
+        self.TaskView.setHorizontalHeaderItem(2, item)
+        self.TaskView.setColumnWidth(2, round((monitor.width())/4.5))
         self.gridLayout.addWidget(self.TaskView, 1, 0, 1, 6)
+        self.LoadTasks(self.getDate())
 
 
         MainWindow.setCentralWidget(self.centralwidget)
@@ -213,6 +289,19 @@ class Ui_Agenda(object):
         self.AddBtn.setText(_translate("MainWindow", "Add New"))
         #self.GreetLabel.setText(_translate("MainWindow", "Greeting"))
         self.CopyBtn.setText(_translate("MainWindow", "Copy"))
+        
+        item = self.TaskView.horizontalHeaderItem(0)
+        item.setText(_translate("MainWindow", "Topic"))
+        item = self.TaskView.horizontalHeaderItem(1)
+        item.setText(_translate("MainWindow", "Tasks"))
+        item = self.TaskView.horizontalHeaderItem(2)
+        item.setText(_translate("MainWindow", "Details"))
+        #item = self.TaskView.horizontalHeaderItem(3)
+        #item.setText(_translate("MainWindow", "Date Submitted"))
+        #item = self.TaskView.horizontalHeaderItem(4)
+        #item.setText(_translate("MainWindow", "Review"))
+        #item = self.TaskView.horizontalHeaderItem(5)
+        #item.setText(_translate("MainWindow", "Status"))
 
         #self.Notes.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
