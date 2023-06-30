@@ -4,7 +4,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from datetime import datetime
 import sqlite3
-import FormPage_ui
 
 
 con = sqlite3.connect('DailyTasks.db')
@@ -24,9 +23,15 @@ class Ui_Agenda(object):
                 self.GreetLabel.setText("You're here late.... go home?")
 
     def AddTask(self):
+        #get selected date
+        self.date = self.calendarWidget.selectedDate()
+        self.date = self.date.toPyDate()
+        self.date = str(self.date)[:10]
+        self.date = datetime.strptime(self.date,"%Y-%m-%d")
+
         self.Add = QMainWindow()
-        self.ui =FormPage_ui.Ui_Form()
-        self.ui.setupUi(self.Add)
+        self.ui =Ui_Form()
+        self.ui.setupUi(self.Add, self.date)
         self.Add.show()
 
     def LoadNotes(self):
@@ -47,23 +52,21 @@ class Ui_Agenda(object):
          f.close
 
     def getDate(self):
-        date = datetime.now()
-        date = str(date)[:10]
-        date = datetime.strptime(date,"%Y-%m-%d")
-        return date
+        self.date = datetime.now()
+        self.date = str(self.date)[:10]
+        self.date = datetime.strptime(self.date,"%Y-%m-%d")
+        return self.date
 
     def LoadTasks(self, date):
         res = cur.execute("SELECT * FROM Topic")
         AllTopics = res.fetchall()
-
-        date = self.getDate()
+        self.TaskView.setRowCount(100)
 
         rowcount = 0
         for row, topic in enumerate(AllTopics):
             topicDate = datetime.strptime(topic[2][:10],"%Y-%m-%d")
             if topicDate == date:
                 id=topic[0]
-
                 #Printing topic
                 font = QtGui.QFont()
                 font.setFamily("Gadugi")
@@ -73,7 +76,7 @@ class Ui_Agenda(object):
                 Item.setFont(font)
                 Item.setTextAlignment(Qt.AlignCenter)
                 Item.setFlags(QtCore.Qt.ItemIsEnabled)
-                self.TaskView.setItem(row,0,Item)
+                self.TaskView.setItem(rowcount,0,Item)
 
                 rowcount = rowcount + 1
 
@@ -106,9 +109,18 @@ class Ui_Agenda(object):
                                 self.TaskView.setItem(rowcount,2,Item)
 
                         rowcount = rowcount + 1
-                row = rowcount + 2
+                rowcount = rowcount + 2
 
-        
+    def NewDate(self):
+        self.date = self.calendarWidget.selectedDate()
+        self.date = self.date.toPyDate()
+        self.date = str(self.date)[:10]
+        self.date = datetime.strptime(self.date,"%Y-%m-%d")
+
+        #Clear table
+        self.TaskView.setRowCount(0)
+        #Load table
+        self.LoadTasks(self.date)
 
     def setupUi(self, MainWindow):
         monitor = QDesktopWidget().screenGeometry(0)
@@ -141,6 +153,7 @@ class Ui_Agenda(object):
 "background-color : rgb(167, 198, 221);\n"
 "}")
         self.calendarWidget.setObjectName("calendarWidget")
+        self.calendarWidget.selectionChanged.connect(self.NewDate)
 
 
         self.gridLayout.addWidget(self.calendarWidget, 4, 0, 1, 5)
@@ -287,7 +300,6 @@ class Ui_Agenda(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "Agenda"))
         self.EditBtn.setText(_translate("MainWindow", "Edit"))
         self.AddBtn.setText(_translate("MainWindow", "Add New"))
-        #self.GreetLabel.setText(_translate("MainWindow", "Greeting"))
         self.CopyBtn.setText(_translate("MainWindow", "Copy"))
         
         item = self.TaskView.horizontalHeaderItem(0)
@@ -296,20 +308,211 @@ class Ui_Agenda(object):
         item.setText(_translate("MainWindow", "Tasks"))
         item = self.TaskView.horizontalHeaderItem(2)
         item.setText(_translate("MainWindow", "Details"))
-        #item = self.TaskView.horizontalHeaderItem(3)
-        #item.setText(_translate("MainWindow", "Date Submitted"))
-        #item = self.TaskView.horizontalHeaderItem(4)
-        #item.setText(_translate("MainWindow", "Review"))
-        #item = self.TaskView.horizontalHeaderItem(5)
-        #item.setText(_translate("MainWindow", "Status"))
 
-        #self.Notes.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Gadugi\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'MS Shell Dlg 2\'; font-size:7.8pt;\">Notes:</span></p>\n"
-"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:\'MS Shell Dlg 2\'; font-size:7.8pt;\"><br /></p></body></html>"#))
+##### FORM PAGE ######
+
+class Ui_Form(object):
+    def newTask(self):
+        if self.TopicDD.currentText() == "Add a task to an already made topic" and self.TopicEF.text() != "":
+            #If were creating a new topic and tasks
+            topic = self.TopicEF.text()
+            task = self.TaskEF.text()
+            details = self.textEdit.toPlainText()
+
+            cur.execute("INSERT INTO 'main'.'Topic' ('Label', 'Date') VALUES ('"+str(topic)+"', '"+str(self.date)+"');")
+            con.commit()
+            id = cur.lastrowid
+            cur.execute("INSERT INTO 'main'.'Tasks' ('TopicID', 'Task', 'Details', 'Date') VALUES ('"+str(id)+"', '"+str(task)+"', '"+str(details)+"', '"+str(self.date)+"');")
+            con.commit()
+            self.sig.emit(1)
+            
+
         
+        elif self.TopicEF.text() == "" and self.TopicDD.currentText() != "Add a task to an already made topic":
+            #If were creating a task to an already make topic
+            topic = self.TopicDD.currentText()
+            task = self.TaskEF.text()
+            details = self.textEdit.toPlainText()
+
+            print(self.date)
+            res = cur.execute("SELECT * FROM Topic WHERE Date LIKE '"+str(self.date)[:10]+"%'")
+            allTopics =  res.fetchall()
+
+            for t in allTopics:
+                if t[1] == topic:
+                    id = t[0]
+                    cur.execute("INSERT INTO 'main'.'Tasks' ('TopicID', 'Task', 'Details', 'Date') VALUES ('"+str(id)+"', '"+str(task)+"', '"+str(details)+"', '"+str(self.date)+"');")
+                    con.commit()
+                    break
+        
+        else:
+            #Error Msg
+            return
+     
+    def getDropDown(self):
+        res = cur.execute("SELECT * FROM Topic")
+        AllTopics = res.fetchall()
+        i = 0
+        for row, topic in enumerate(AllTopics):
+            topicDate = datetime.strptime(topic[2][:10],"%Y-%m-%d")
+            if topicDate == self.date:
+                self.TopicDD.addItem("")
+                self.TopicDD.setItemText(i, str(topic[1]))
+                i = i+1
+
+    def setupUi(self, MainWindow, date):
+        self.date = date
+        self.sig = pyqtSignal(int)
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(564, 600)
+        MainWindow.setStyleSheet("background-color:rgb(210, 225, 255);")
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.formLayout = QtWidgets.QFormLayout(self.centralwidget)
+        self.formLayout.setObjectName("formLayout")
+        
+        
+        self.TopicLabel = QtWidgets.QLabel(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.TopicLabel.setFont(font)
+        self.TopicLabel.setObjectName("TopicLabel")
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.TopicLabel)
+
+
+        self.TopicEF = QtWidgets.QLineEdit(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.TopicEF.setFont(font)
+        self.TopicEF.setStyleSheet("background-color: white;\n"
+        "border-radius: 5;\n"
+        "border: 2px solid rgb(199, 199, 199);")
+        self.TopicEF.setObjectName("TopicEF")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.TopicEF)
+
+
+        self.OrLabel = QtWidgets.QLabel(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.OrLabel.setFont(font)
+        self.OrLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.OrLabel.setObjectName("OrLabel")
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.OrLabel)
+
+
+        self.TopicDD = QtWidgets.QComboBox(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setBold(True)
+        font.setPointSize(10)
+        self.TopicDD.setFont(font)
+        self.TopicDD.setStyleSheet("background-color: white;\n"
+        "border-radius: 5;\n"
+        "border: 2px solid rgb(199, 199, 199);")
+        self.TopicDD.setPlaceholderText("Add a task to an already made topic")
+        self.TopicDD.setObjectName("TopicDD")
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.TopicDD)
+        self.getDropDown()
+
+
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.formLayout.setItem(5, QtWidgets.QFormLayout.LabelRole, spacerItem)
+
+
+        self.TaskLabel = QtWidgets.QLabel(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.TaskLabel.setFont(font)
+        self.TaskLabel.setObjectName("TaskLabel")
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.TaskLabel)
+
+
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.formLayout.setItem(7, QtWidgets.QFormLayout.FieldRole, spacerItem1)
+
+
+        self.TaskEF = QtWidgets.QLineEdit(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.TaskEF.setFont(font)
+        self.TaskEF.setStyleSheet("background-color: white;\n"
+        "border-radius: 5;\n"
+        "border: 2px solid rgb(199, 199, 199);")
+        self.TaskEF.setObjectName("TaskEF")
+        self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole, self.TaskEF)
+
+
+        self.DetailsLabel = QtWidgets.QLabel(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.DetailsLabel.setFont(font)
+        self.DetailsLabel.setObjectName("DetailsLabel")
+        self.formLayout.setWidget(9, QtWidgets.QFormLayout.FieldRole, self.DetailsLabel)
+
+
+        self.textEdit = QtWidgets.QTextEdit(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.textEdit.setFont(font)
+        self.textEdit.setStyleSheet("background-color: white;\n"
+        "border-radius: 15;\n"
+        "border: 2px solid rgb(199, 199, 199);")
+        self.textEdit.setObjectName("textEdit")
+        self.formLayout.setWidget(10, QtWidgets.QFormLayout.FieldRole, self.textEdit)
+
+
+        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.formLayout.setItem(13, QtWidgets.QFormLayout.FieldRole, spacerItem2)
+        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.formLayout.setItem(14, QtWidgets.QFormLayout.FieldRole, spacerItem3)
+
+
+        self.SaveBtn = QtWidgets.QPushButton(self.centralwidget)
+        font = QtGui.QFont()
+        font.setFamily("Gadugi")
+        font.setPointSize(10)
+        self.SaveBtn.setFont(font)
+        self.SaveBtn.setStyleSheet("QPushButton{\n"
+        "            background-color:rgb(223, 223, 223);\n"
+        "            border-radius: 8; \n"
+        "            border: 2px solid rgb(115, 115, 115); \n"
+        "            border-style: outset;\n"
+        "            padding: 5;\n"
+        "            padding-right: 10px;\n"
+        "            padding-left: 10px;\n"
+        "        }\n"
+        "\n"
+        "QPushButton:hover{\n"
+        "           background-color:rgb(182, 182, 182);\n"
+        "        }")
+        self.SaveBtn.setObjectName("SaveBtn")
+        self.formLayout.setWidget(15, QtWidgets.QFormLayout.FieldRole, self.SaveBtn)
+        self.SaveBtn.clicked.connect(self.newTask)
+
+
+        MainWindow.setCentralWidget(self.centralwidget)
+        self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setObjectName("statusbar")
+        MainWindow.setStatusBar(self.statusbar)
+
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.TopicLabel.setText(_translate("MainWindow", "Topic:"))
+        self.OrLabel.setText(_translate("MainWindow", "Or"))
+        self.TaskLabel.setText(_translate("MainWindow", "Task:"))
+        self.DetailsLabel.setText(_translate("MainWindow", "Details:"))
+        self.SaveBtn.setText(_translate("MainWindow", "Save"))
 
 
 
